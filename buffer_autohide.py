@@ -74,7 +74,7 @@ def config_init():
 def hotlist_dict():
     """Return the contents of the hotlist as a dictionary.
 
-    The returned dictionay has the following structure:
+    The returned dictionary has the following structure:
     >>> hotlist = {
     ...     "0x0": {                    # string representation of the buffer pointer
     ...         "count_low": 0,
