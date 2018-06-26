@@ -117,7 +117,7 @@ def hide_buffer_cb(signal, data, signal_data):
     server = weechat.buffer_get_string(previous_buffer, "localvar_server")
     channel = weechat.buffer_get_string(previous_buffer, "localvar_channel")
 
-    if plugin != "irc" or full_name.startswith("irc.server"):
+    if full_name.startswith("irc.server"):
         return WEECHAT_RC_OK
 
     buffer_type = weechat.buffer_get_string(
