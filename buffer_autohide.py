@@ -127,6 +127,8 @@ def hide_buffer_cb(data, signal, signal_data):
     previous_buffer = CURRENT_BUFFER
     CURRENT_BUFFER = weechat.current_buffer()
 
+    weechat.buffer_set(CURRENT_BUFFER, "hidden", "0")
+
     plugin = weechat.buffer_get_string(previous_buffer, "plugin")
     full_name = weechat.buffer_get_string(previous_buffer, "full_name")
     server = weechat.buffer_get_string(previous_buffer, "localvar_server")
