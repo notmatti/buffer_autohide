@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # MIT License
 #
-# Copyright (c) 2017-2018 Matthias Adamczyk
+# Copyright (c) 2017-2019 Matthias Adamczyk
 # Copyright (c) 2019 Marco Trevisan
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -32,6 +32,8 @@ Configuration:
     plugins.var.python.buffer_autohide.unhide_low: Unhide a buffer when a low priority message (like JOIN,
         PART, etc.) has been received (default: "off"),
     plugins.var.python.buffer_autohide.excemptions: An enumeration of buffers that should not become hidden (default: "")
+    plugins.var.python.buffer_autohide.keep_open: Keep a buffer open for a short amount of time (default: "off")
+    plugins.var.python.buffer_autohide.keep_open_timeout: Timeout in milliseconds for how long a selected buffer should be kept around (default: "60 * 1000")
 
 History:
 2017-03-19: Matthias Adamczyk <mail@notmatti.me>
@@ -45,6 +47,9 @@ History:
 
 https://github.com/notmatti/buffer_autohide
 """
+from __future__ import print_function
+import ast
+import operator as op
 import_ok = True
 try:
     import weechat
@@ -56,7 +61,7 @@ except ImportError:
 
 SCRIPT_NAME = "buffer_autohide"
 SCRIPT_AUTHOR = "Matthias Adamczyk <mail@notmatti.me>"
-SCRIPT_VERSION = "0.3"
+SCRIPT_VERSION = "0.4"
 SCRIPT_LICENSE = "MIT"
 SCRIPT_DESC = "Automatically hide read IRC buffers and unhide them on new activity"
 SCRIPT_COMMAND = SCRIPT_NAME
@@ -72,18 +77,56 @@ KEEP_ALIVE_BUFFERS = {} # {pointer_string_rep: timeout_hook}
 
 def config_init():
     """Add configuration options to weechat."""
+    global KEEP_ALIVE_TIMEOUT
+
     config = {
         "hide_inactive": ("off", "Hide inactive buffers"),
         "hide_private": ("off", "Hide private buffers"),
         "unhide_low": ("off",
             "Unhide a buffer when a low priority message (like JOIN, PART, etc.) has been received"),
         "excemptions": ("", "An enumeration of buffers that should not get hidden"),
+        "keep_open": ("off", "Keep a buffer open for a short amount of time"),
+        "keep_open_timeout": ("60 * 1000", "Timeout in milliseconds for how long a selected buffer should be kept around"),
     }
     for option, default_value in config.items():
         if weechat.config_get_plugin(option) == "":
             weechat.config_set_plugin(option, default_value[0])
         weechat.config_set_desc_plugin(
             option, '{} (default: "{}")'.format(default_value[1], default_value[0]))
+
+    weechat.hook_config("plugins.var.python.buffer_autohide.keep_open_timeout", "timeout_config_changed_cb", "")
+    if weechat.config_is_set_plugin("keep_open_timeout"):
+        KEEP_ALIVE_TIMEOUT = eval_expr(weechat.config_get_plugin("keep_open_timeout"))
+
+
+def eval_expr(expr):
+    """Evaluate a mathematical expression.
+
+    >>> eval_expr('2 * 6')
+    12
+    """
+    def evaluate(node):
+        # supported operators
+        operators = {ast.Add: op.add, ast.Sub: op.sub, ast.Mult: op.mul,
+                     ast.Div: op.truediv, ast.Pow: op.pow, ast.BitXor: op.xor,
+                     ast.USub: op.neg}
+        if isinstance(node, ast.Num): # <number>
+            return node.n
+        elif isinstance(node, ast.BinOp): # <left> <operator> <right>
+            return operators[type(node.op)](evaluate(node.left), evaluate(node.right))
+        elif isinstance(node, ast.UnaryOp): # <operator> <operand> e.g., -1
+            return operators[type(node.op)](evaluate(node.operand))
+        else:
+            raise TypeError(node)
+
+    return evaluate(ast.parse(expr, mode='eval').body)
+
+
+def timeout_config_changed_cb(data, option, value):
+    """Set the new keep_alive timeout upon change of the corresponding value in plugins.conf."""
+    global KEEP_ALIVE_TIMEOUT
+    KEEP_ALIVE_TIMEOUT = eval_expr(value)
+    return WEECHAT_RC_OK
 
 
 def hotlist_dict():
@@ -155,15 +198,18 @@ def switch_current_buffer():
     if weechat.buffer_get_integer(CURRENT_BUFFER, "hidden") == 1:
         weechat.buffer_set(CURRENT_BUFFER, "hidden", "0")
 
-    if CURRENT_BUFFER_TIMER_HOOK is not None:
-        weechat.unhook(CURRENT_BUFFER_TIMER_HOOK)
-        CURRENT_BUFFER_TIMER_HOOK = None
-        maybe_hide_buffer(previous_buffer)
-    else:
-        keep_alive_buffer(previous_buffer)
+    if weechat.config_get_plugin("keep_open") != "off":
+        if CURRENT_BUFFER_TIMER_HOOK is not None:
+            weechat.unhook(CURRENT_BUFFER_TIMER_HOOK)
+            CURRENT_BUFFER_TIMER_HOOK = None
+            maybe_hide_buffer(previous_buffer)
+        else:
+            keep_alive_buffer(previous_buffer)
 
-    CURRENT_BUFFER_TIMER_HOOK = weechat.hook_timer(MINIMUM_BUFFER_LIFE, 0, 1,
-        "on_current_buffer_is_still_active_timeout", "")
+        CURRENT_BUFFER_TIMER_HOOK = weechat.hook_timer(MINIMUM_BUFFER_LIFE, 0, 1,
+            "on_current_buffer_is_still_active_timeout", "")
+    else:
+        maybe_hide_buffer(previous_buffer)
 
 
 def on_current_buffer_is_still_active_timeout(pointer, remaining_calls):

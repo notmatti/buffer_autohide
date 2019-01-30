@@ -10,4 +10,6 @@ The behaviour of buffer_autohide can be altered via `plugins.conf`:
 * `python.buffer_autohide.hide_private`: Hide private buffers (default: `off`)
 * `python.buffer_autohide.unhide_low`: Unhide a buffer when a low message (JOIN, PART, etc.) has been received (default: `off`)
 * `python.buffer_autohide.excemptions`: An enumeration of buffers that should not become hidden (default: `""`)
+* `python.buffer_autohide.keep_open`: Keep a buffer open for a short amount of time (default: "off")
+* `python.buffer_autohide.keep_open_timeout`: Timeout in milliseconds for how long a selected buffer should be kept around (default: "60 * 1000")
 
