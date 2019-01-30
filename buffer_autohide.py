@@ -22,7 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 """
-Automatically hide read IRC buffers and unhide them on new activity.
+Automatically hide read buffers and unhide them on new activity.
 
 Requires WeeChat version 1.0 or higher.
 
@@ -63,7 +63,7 @@ SCRIPT_NAME = "buffer_autohide"
 SCRIPT_AUTHOR = "Matthias Adamczyk <mail@notmatti.me>"
 SCRIPT_VERSION = "0.4"
 SCRIPT_LICENSE = "MIT"
-SCRIPT_DESC = "Automatically hide read IRC buffers and unhide them on new activity"
+SCRIPT_DESC = "Automatically hide read buffers and unhide them on new activity"
 SCRIPT_COMMAND = SCRIPT_NAME
 
 DELIMITER = "|@|"
@@ -250,30 +250,19 @@ def buffer_is_hidable(buffer):
     if buffer in KEEP_ALIVE_BUFFERS.keys():
         return False
 
-    plugin = weechat.buffer_get_string(buffer, "plugin")
     full_name = weechat.buffer_get_string(buffer, "full_name")
-    server = weechat.buffer_get_string(buffer, "localvar_server")
-    channel = weechat.buffer_get_string(buffer, "localvar_channel")
 
     if full_name.startswith("irc.server"):
         return False
 
-    buffer_type = weechat.buffer_get_string(
-        weechat.info_get("irc_buffer", "{},{}".format(server, channel)),
-        "localvar_type")
+    buffer_type = weechat.buffer_get_string(buffer, 'localvar_type')
 
     if (buffer_type == "private"
             and weechat.config_get_plugin("hide_private") == "off"):
         return False
 
     if weechat.config_get_plugin("hide_inactive") == "off":
-        nicks_count = 0
-        infolist = weechat.infolist_get(
-            "irc_channel", "", "{},{}".format(server, channel))
-        if infolist:
-            weechat.infolist_next(infolist)
-            nicks_count = weechat.infolist_integer(infolist, "nicks_count")
-        weechat.infolist_free(infolist)
+        nicks_count = weechat.buffer_get_integer(buffer, 'nicklist_nicks_count')
         if nicks_count == 0:
             return False
 
@@ -302,13 +291,9 @@ def unhide_buffer_cb(data, signal, signal_data):
     :param signal_data: Data sent with signal
     :returns: Callback return value expected by Weechat.
     """
-    server = signal.split(",")[0]
-    message = weechat.info_get_hashtable(
-        "irc_message_parse",
-        {"message": signal_data})
-    channel = message["channel"]
     hotlist = hotlist_dict()
-    buffer = weechat.info_get("irc_buffer", "{},{}".format(server, channel))
+    line_data = weechat.hdata_pointer(weechat.hdata_get('line'), signal_data, 'data')
+    buffer = weechat.hdata_pointer(weechat.hdata_get('line_data'), line_data, 'buffer')
 
     if not buffer in hotlist.keys():
         # just some background noise
@@ -425,7 +410,7 @@ if (__name__ == '__main__' and import_ok and weechat.register(
         config_init()
         CURRENT_BUFFER = weechat.current_buffer()
         weechat.hook_signal("buffer_switch", "switch_buffer_cb", "")
-        weechat.hook_signal("*,irc_in2_*", "unhide_buffer_cb", "")
+        weechat.hook_signal("buffer_line_added", "unhide_buffer_cb", "")
         weechat.hook_command(
             SCRIPT_NAME,
             SCRIPT_DESC,
