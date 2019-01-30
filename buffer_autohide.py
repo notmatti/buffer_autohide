@@ -31,7 +31,7 @@ Configuration:
     plugins.var.python.buffer_autohide.hide_private: Hide private buffers (default: "off")
     plugins.var.python.buffer_autohide.unhide_low: Unhide a buffer when a low priority message (like JOIN,
         PART, etc.) has been received (default: "off"),
-    plugins.var.python.buffer_autohide.excemptions: An enumeration of buffers that should not become hidden (default: "")
+    plugins.var.python.buffer_autohide.exemptions: An enumeration of buffers that should not become hidden (default: "")
     plugins.var.python.buffer_autohide.keep_open: Keep a buffer open for a short amount of time (default: "off")
     plugins.var.python.buffer_autohide.keep_open_timeout: Timeout in milliseconds for how long a selected buffer should be kept around (default: "60 * 1000")
 
@@ -41,7 +41,7 @@ History:
 2018-06-28: yeled <yeled@github.com>
     version 0.2: Only skip irc.servers
 2018-12-07: Matthias Adamczyk <mail@notmatti.me>
-    version 0.3: Add a functionality to define excemptions for certain buffers
+    version 0.3: Add a functionality to define exemptions for certain buffers
 2018-12-07: Marco Trevisan <mail@3v1n0.net>
     version 0.4: Keep buffers active for a given time before hide them again if they should
 
@@ -84,7 +84,7 @@ def config_init():
         "hide_private": ("off", "Hide private buffers"),
         "unhide_low": ("off",
             "Unhide a buffer when a low priority message (like JOIN, PART, etc.) has been received"),
-        "excemptions": ("", "An enumeration of buffers that should not get hidden"),
+        "exemptions": ("", "An enumeration of buffers that should not get hidden"),
         "keep_open": ("off", "Keep a buffer open for a short amount of time"),
         "keep_open_timeout": ("60 * 1000", "Timeout in milliseconds for how long a selected buffer should be kept around"),
     }
@@ -239,7 +239,7 @@ def buffer_is_hidable(buffer):
     If configuration option ``hide_private`` is enabled,
     private buffers will become hidden as well.
 
-    If the previous buffer name matches any of the excemptions defined in ``excemptions``,
+    If the previous buffer name matches any of the exemptions defined in ``exemptions``,
     it will not become hidden.
 
     :param buffer: Buffer string representation
@@ -277,7 +277,7 @@ def buffer_is_hidable(buffer):
         if nicks_count == 0:
             return False
 
-    for entry in list_excemptions():
+    for entry in list_exemptions():
         if entry in full_name:
             return False
 
@@ -325,36 +325,36 @@ def unhide_buffer_cb(data, signal, signal_data):
     return WEECHAT_RC_OK
 
 
-def list_excemptions():
-    """Return a list of excemption defined in ``excemptions``.
+def list_exemptions():
+    """Return a list of exemption defined in ``exemptions``.
 
-    :returns: A list of defined excemptions.
+    :returns: A list of defined exemptions.
     """
-    return [x for x in weechat.config_get_plugin("excemptions").split(DELIMITER) if x != ""]
+    return [x for x in weechat.config_get_plugin("exemptions").split(DELIMITER) if x != ""]
 
 
-def add_to_excemptions(entry):
-    """Add an entry to the list of excemptions.
+def add_to_exemptions(entry):
+    """Add an entry to the list of exemptions.
 
     An entry can be either a #channel or server_name.#channel
 
     :param entry: The entry to add.
     :returns: the new list of entries. The return value is only used for unit testing.
     """
-    entries = list_excemptions()
+    entries = list_exemptions()
     entries.append(entry)
-    weechat.config_set_plugin("excemptions", DELIMITER.join(entries))
-    weechat.prnt("", "[{}] add: {} added to excemptions.".format(SCRIPT_COMMAND, entry))
+    weechat.config_set_plugin("exemptions", DELIMITER.join(entries))
+    weechat.prnt("", "[{}] add: {} added to exemptions.".format(SCRIPT_COMMAND, entry))
     return entries
 
 
-def del_from_excemptions(entry):
-    """Remove an entry from the list of defined excemtions.
+def del_from_exemptions(entry):
+    """Remove an entry from the list of defined exemptions.
 
     :param entry: The entry to delete, which can be specified by the position in the list or by the name itself.
     :returns: the new list of entries. The return value is only used for unit testing.
     """
-    entries = list_excemptions()
+    entries = list_exemptions()
     try:
         # by index
         try:
@@ -369,26 +369,26 @@ def del_from_excemptions(entry):
         try:
             # by name
             entries.remove(entry)
-            weechat.config_set_plugin("excemptions", DELIMITER.join(entries))
+            weechat.config_set_plugin("exemptions", DELIMITER.join(entries))
         except ValueError:
             weechat.prnt("", "[{}] del: Could not find {}".format(SCRIPT_COMMAND, entry))
             return entries
 
-    weechat.config_set_plugin("excemptions", DELIMITER.join(entries))
-    weechat.prnt("", "[{}] del: Removed {} from excemptions.".format(SCRIPT_COMMAND, entry))
+    weechat.config_set_plugin("exemptions", DELIMITER.join(entries))
+    weechat.prnt("", "[{}] del: Removed {} from exemptions.".format(SCRIPT_COMMAND, entry))
     return entries
 
 
-def print_excemptions():
-    """Print all excemptions defined in ``excemptions``"""
-    entries = list_excemptions()
+def print_exemptions():
+    """Print all exemptions defined in ``exemptions``"""
+    entries = list_exemptions()
     if entries:
         count = 1
         for entry in entries:
             weechat.prnt("", "[{}] {}: {}".format(SCRIPT_COMMAND, count, entry))
             count += 1
     else:
-        weechat.prnt("", "[{}] list: No excemptions defined so far.".format(SCRIPT_COMMAND))
+        weechat.prnt("", "[{}] list: No exemptions defined so far.".format(SCRIPT_COMMAND))
 
 
 def command_cb(data, buffer, args):
@@ -404,14 +404,14 @@ def command_cb(data, buffer, args):
 
     elif list_args[0] == "add":
         if len(list_args) == 2:
-            add_to_excemptions(list_args[1])
+            add_to_exemptions(list_args[1])
 
     elif list_args[0] == "del":
         if len(list_args) == 2:
-            del_from_excemptions(list_args[1])
+            del_from_exemptions(list_args[1])
 
     elif list_args[0] == "list":
-        print_excemptions()
+        print_exemptions()
     else:
         weechat.command("", "/help " + SCRIPT_COMMAND)
 
@@ -430,9 +430,9 @@ if (__name__ == '__main__' and import_ok and weechat.register(
             SCRIPT_NAME,
             SCRIPT_DESC,
             "add $buffer_name | del { $buffer_name | $list_position } | list",
-            "  add    : Add $buffer_name to the list of excemptions\n"
+            "  add    : Add $buffer_name to the list of exemptions\n"
             "           $buffer_name can be either #channel or server_name.#channel"
-            "  del    : Delete $buffer_name from the list of excemptions\n"
+            "  del    : Delete $buffer_name from the list of exemptions\n"
             "  list   : Return a list of all buffers that should not become hidden.",
             "add|del|list",
             "command_cb",
