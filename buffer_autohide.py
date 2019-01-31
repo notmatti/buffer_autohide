@@ -44,6 +44,8 @@ History:
     version 0.3: Add a functionality to define exemptions for certain buffers
 2018-12-07: Marco Trevisan <mail@3v1n0.net>
     version 0.4: Keep buffers active for a given time before hide them again if they should
+2019-01-31: Trygve Aaberge <trygveaa@gmail.com>
+    version 0.5: Support buffers from plugins other than IRC as well
 
 https://github.com/notmatti/buffer_autohide
 """
@@ -61,7 +63,7 @@ except ImportError:
 
 SCRIPT_NAME = "buffer_autohide"
 SCRIPT_AUTHOR = "Matthias Adamczyk <mail@notmatti.me>"
-SCRIPT_VERSION = "0.4"
+SCRIPT_VERSION = "0.5"
 SCRIPT_LICENSE = "MIT"
 SCRIPT_DESC = "Automatically hide read buffers and unhide them on new activity"
 SCRIPT_COMMAND = SCRIPT_NAME
@@ -416,7 +418,7 @@ if (__name__ == '__main__' and import_ok and weechat.register(
             SCRIPT_DESC,
             "add $buffer_name | del { $buffer_name | $list_position } | list",
             "  add    : Add $buffer_name to the list of exemptions\n"
-            "           $buffer_name can be either #channel or server_name.#channel"
+            "           $buffer_name can be either #channel or server_name.#channel\n"
             "  del    : Delete $buffer_name from the list of exemptions\n"
             "  list   : Return a list of all buffers that should not become hidden.",
             "add|del|list",

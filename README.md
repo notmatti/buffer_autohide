@@ -1,5 +1,5 @@
 # buffer_autohide
-Weechat script to automatically hide read IRC buffers (and to unhide them on new activity)
+Weechat script to automatically hide read buffers (and to unhide them on new activity)
 
 ## Install
 Place `buffer_autohide.py` into your `~/.weechat/python/` folder and enable it in weechat with `/script load buffer_autohide.py`.
@@ -13,3 +13,4 @@ The behaviour of buffer_autohide can be altered via `plugins.conf`:
 * `python.buffer_autohide.keep_open`: Keep a buffer open for a short amount of time (default: "off")
 * `python.buffer_autohide.keep_open_timeout`: Timeout in milliseconds for how long a selected buffer should be kept around (default: "60 * 1000")
 
+In addidtion, exemptions can be defined via the `/buffer_autohide` command. See `/help buffer_autohide` for more info.
