@@ -46,6 +46,8 @@ History:
     version 0.4: Keep buffers active for a given time before hide them again if they should
 2019-01-31: Trygve Aaberge <trygveaa@gmail.com>
     version 0.5: Support buffers from plugins other than IRC as well
+2021-10-12: Chad Kouse <chad.kouse@gmail.com>
+    version 0.6: Prevent crash when a buffer is manually closed
 
 https://github.com/notmatti/buffer_autohide
 """
@@ -63,7 +65,7 @@ except ImportError:
 
 SCRIPT_NAME = "buffer_autohide"
 SCRIPT_AUTHOR = "Matthias Adamczyk <mail@notmatti.me>"
-SCRIPT_VERSION = "0.5"
+SCRIPT_VERSION = "0.6"
 SCRIPT_LICENSE = "MIT"
 SCRIPT_DESC = "Automatically hide read buffers and unhide them on new activity"
 SCRIPT_COMMAND = SCRIPT_NAME
@@ -232,6 +234,17 @@ def switch_buffer_cb(data, signal, signal_data):
     :returns: callback return value expected by Weechat.
     """
     switch_current_buffer()
+    return WEECHAT_RC_OK
+
+def close_buffer_cb(data, signal, signal_data):
+    """
+    :param data: Pointer
+    :param signal: Signal sent by Weechat
+    :param signal_data: Data sent with signal
+    :returns: callback return value expected by Weechat.
+    """
+    remove_keep_alive(signal_data)
+
     return WEECHAT_RC_OK
 
 
@@ -412,6 +425,7 @@ if (__name__ == '__main__' and import_ok and weechat.register(
         config_init()
         CURRENT_BUFFER = weechat.current_buffer()
         weechat.hook_signal("buffer_switch", "switch_buffer_cb", "")
+        weechat.hook_signal("buffer_closed", "close_buffer_cb", "")
         weechat.hook_signal("buffer_line_added", "unhide_buffer_cb", "")
         weechat.hook_command(
             SCRIPT_NAME,
